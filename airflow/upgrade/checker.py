@@ -25,6 +25,7 @@ from airflow.upgrade.formatters import BaseFormatter
 from airflow.upgrade.problem import RuleStatus
 from airflow.upgrade.rules import get_rules
 from airflow.upgrade.rules.base_rule import BaseRule
+from airflow.upgrade.version import version as auc_version
 
 ALL_RULES = [cls() for cls in get_rules()]  # type: List[BaseRule]
 
@@ -56,6 +57,10 @@ def register_arguments(subparser):
         help="Path to upgrade check config yaml file.",
     )
     subparser.set_defaults(func=run)
+
+
+def version(args):  # noqa
+    print(auc_version)
 
 
 def run(args):
