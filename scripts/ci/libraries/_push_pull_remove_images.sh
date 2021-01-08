@@ -279,15 +279,18 @@ function push_pull_remove_images::wait_for_github_registry_image() {
 
     GITHUB_API_CALL="${github_api_endpoint}/${image_name_in_github_registry}/manifests/${image_tag_in_github_registry}"
     while true; do
-        curl -X GET "${GITHUB_API_CALL}" -u "${GITHUB_USERNAME}:${GITHUB_TOKEN}" 2>/dev/null > "${OUTPUT_LOG}"
+        curl --connect-timeout 60  --max-time 60 \
+            -X GET "${GITHUB_API_CALL}" -u "${GITHUB_USERNAME}:${GITHUB_TOKEN}" 2>/dev/null > "${OUTPUT_LOG}"
         local digest
         digest=$(jq '.config.digest' < "${OUTPUT_LOG}")
-        echo -n "."
         if [[ ${digest} != "null" ]]; then
             echo  "${COLOR_GREEN_OK}  ${COLOR_RESET}"
             break
+        else
+            echo "${COLOR_YELLOW}Still waiting!${COLOR_RESET}"
+            cat "${OUTPUT_LOG}"
         fi
-        sleep 10
+        sleep 60
     done
     verbosity::print_info "Found ${image_name_in_github_registry}:${image_tag_in_github_registry} image"
     verbosity::print_info "Digest: '${digest}'"
@@ -303,19 +306,17 @@ function push_pull_remove_images::check_if_github_registry_wait_for_image_enable
         echo "GITHUB_REGISTRY_WAIT_FOR_IMAGE =${GITHUB_REGISTRY_WAIT_FOR_IMAGE}"
         echo
         exit 1
-    else
-        echo
-        echo "Both USE_GITHUB_REGISTRY and GITHUB_REGISTRY_WAIT_FOR_IMAGE are set to true. Good!"
     fi
 }
 
 function push_pull_remove_images::check_if_jq_installed() {
+    start_end::group_start "JQ check"
     echo
     echo "Check if jq is installed"
     echo
     command -v jq >/dev/null || (echo "ERROR! You must have 'jq' tool installed!" && exit 1)
-
     echo
     echo "The jq version $(jq --version)"
     echo
+    start_end::group_end
 }

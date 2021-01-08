@@ -143,6 +143,8 @@ class ProvidersManager:
         """
         for entry_point, dist in entry_points_with_dist('apache_airflow_provider'):
             package_name = dist.metadata['name']
+            if self._provider_dict.get(package_name) is not None:
+                continue
             log.debug("Loading %s from package %s", entry_point, package_name)
             version = dist.version
             provider_info = entry_point.load()()
@@ -192,8 +194,16 @@ class ProvidersManager:
         for folder, subdirs, files in os.walk(path, topdown=True):
             for filename in fnmatch.filter(files, "provider.yaml"):
                 package_name = "apache-airflow-providers" + folder[len(root_path) :].replace(os.sep, "-")
-                self._add_provider_info_from_local_source_file(os.path.join(folder, filename), package_name)
-                subdirs[:] = []
+                # We are skipping discovering snowflake because of snowflake monkeypatching problem
+                # This is only for local development - it has no impact for the packaged snowflake provider
+                # That should work on its own
+                # https://github.com/apache/airflow/issues/12881
+                # Once this is back, we can remove this limitation.
+                if package_name != "apache-airflow-providers-snowflake":
+                    self._add_provider_info_from_local_source_file(
+                        os.path.join(folder, filename), package_name
+                    )
+                    subdirs[:] = []
 
     def _add_provider_info_from_local_source_file(self, path, package_name) -> None:
         """

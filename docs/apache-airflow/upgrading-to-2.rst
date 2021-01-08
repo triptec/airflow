@@ -27,7 +27,9 @@ users to migrate from Airflow 1.10.x to Airflow 2.0.
 Step 1: Upgrade to Python 3
 '''''''''''''''''''''''''''
 
-Airflow 1.10 will be the last release series to support Python 2. Airflow 2.0.0 will require Python 3.6+.
+Airflow 1.10 will be the last release series to support Python 2. Airflow 2.0.0 will
+require Python 3.6+ and at this point in time has been tested with Python versions 3.6, 3.7,
+and 3.8, but does not yet support Python 3.9.
 
 If you have a specific task that still requires Python 2 then you can use the :class:`~airflow.operators.python.PythonVirtualenvOperator` or the ``KubernetesPodOperator`` for this.
 
@@ -323,6 +325,14 @@ the only supported UI.
 
 **Breaking Change in OAuth**
 
+.. note::
+
+    When multiple replicas of the airflow webserver are running they
+    need to share the same *secret_key* to access the same user session. Inject
+    this via any configuration mechanism. The 1.10.14 bridge-release modifies this feature
+    to use randomly generated secret keys instead of an insecure default and may break existing
+    deployments that rely on the default.
+
 The ``flask-ouathlib`` has been replaced with ``authlib`` because ``flask-outhlib`` has
 been deprecated in favor of ``authlib``.
 The Old and New provider configuration keys that have changed are as follows
@@ -508,6 +518,9 @@ At this point, just follow the standard Airflow version upgrade process:
 
       The database upgrade may take a while depending on the number of DAGs in the database and the volume of history
       stored in the database for task history, xcom variables, etc.
+      In our testing, we saw that performing the Airflow database upgrade from Airflow 1.10.14 to Airflow 2.0
+      took between two to three minutes on an Airflow database on PostgreSQL with around 35,000 task instances and
+      500 DAGs.
       For a faster database upgrade and for better overall performance, it is recommended that you periodically archive
       the old historical elements which are no longer of value.
 
